@@ -1,8 +1,10 @@
 import pandas as pd
 def load_dataset():
     data = pd.read_csv(r"data/Custom_Crops_yield_Historical_Dataset.csv")
-    x = data.drop("Yield_kg_per_ha",axis=1)
-    y = data["Yield_kg_per_ha"]
+    data.columns = data.columns.str.strip().str.lower().str.replace(" ", "_")
+    x = data.drop(["state_code","dist_code","total_n_kg","total_p_kg","total_k_kg","yield_kg_per_ha"],axis=1)
+    x.columns = x.columns.str.strip().str.lower().str.replace(" ", "_")
+    y = data["yield_kg_per_ha"]
     return x,y
 def preview_data():
     data = pd.read_csv(r"data/Custom_Crops_yield_Historical_Dataset.csv")

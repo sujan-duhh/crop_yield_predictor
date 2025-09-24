@@ -3,87 +3,112 @@ from flask_cors import CORS
 import joblib
 import pandas as pd
 import os
-import logging
-from .api_data import get_weather_data, get_agromonitoring_data
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+from Api_data import get_weather_data,get_lat_lon,get_last7days_weather,get_soil_ph_and_type
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
 
-# 🔹 Path to trained model
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "../Random_Forest_pipeline.pkl")
+# Load results (from training step)
+results_df = pd.read_csv(os.path.join(os.path.dirname(__file__), "../results.csv"), index_col=0)
+
+# Find best model (lowest MSE)
+best_model_name = results_df['MSE'].idxmin()
+print(f"✅ Best model: {best_model_name}")
+
+# Construct path of the best model .pkl file
+MODEL_PATH = os.path.join(os.path.dirname(__file__), f"../{best_model_name.replace(' ', '_')}_pipeline.pkl")
 
 # Load trained pipeline
-try:
-    model = joblib.load(MODEL_PATH)
-    preprocessor = model.named_steps["preprocessor"]
-    FEATURES = preprocessor.get_feature_names_out().tolist()
-    logging.info("Model pipeline loaded successfully.")
-    logging.info(f"Expected features: {FEATURES}")
-except FileNotFoundError:
-    logging.error(f"Model file not found at {MODEL_PATH}")
-    model = None
-    FEATURES = []
-except Exception as e:
-    logging.error(f"Error loading model pipeline: {e}")
-    model = None
-    FEATURES = []
+model = joblib.load(MODEL_PATH)
+
+# 🔹 Extract features directly from preprocessor
+preprocessor = model.named_steps["preprocessor"]
+FEATURES = []
+for name, transformer, cols in preprocessor.transformers:
+    if cols is not None:
+        FEATURES.extend(cols)
 
 @app.route("/")
 def home():
-    if model:
-        return {"message": "🌾 Crop Yield Predictor API is running!"}
-    else:
-        return {"message": "🌾 Crop Yield Predictor API is running, but model is not loaded."}, 500
+    return {"message": "🌾 Crop Yield Predictor API is running!"}
 
 @app.route("/features", methods=["GET"])
 def features():
-    return jsonify({"features": FEATURES})
+    return jsonify({"features": ["crop","state_name","dist_name","area_in_acres"]})
 
 @app.route("/predict", methods=["POST"])
 def predict():
-    if not model:
-        return jsonify({"error": "Model is not available. Please check server logs."}), 500
-    
     try:
-        data = request.get_json()
+        userinput = request.get_json()
+        userinput_df=pd.DataFrame([userinput],columns=["crop","state_name","dist_name","area_in_acres"])
         
-        # 🔹 Extract latitude and longitude from the request
-        lat = data.get("lat")
-        lon = data.get("lon")
-
-        if not lat or not lon:
-            return jsonify({"error": "Latitude and longitude are required."}), 400
-
-        # 🔹 Automatically fetch weather and soil data
-        agromonitoring_data = get_agromonitoring_data(lat, lon)
-        if not agromonitoring_data:
-            return jsonify({"error": "Could not fetch necessary data from AgroMonitoring API."}), 500
-
-        # 🔹 Combine fetched data with user input
-        # Note: We assume the user's model features include the data fetched from the API.
-        combined_data = {**data, **agromonitoring_data}
+        # Wrap into DataFrame
         
-        # Remove lat and lon from the combined data as they are not model features
-        combined_data.pop("lat", None)
-        combined_data.pop("lon", None)
+        lat_lon=get_lat_lon(userinput_df.loc[0,"state_name"],userinput_df.loc[0,"dist_name"])
+        print(lat_lon)
+        lat=lat_lon["lat"]
+        lon=lat_lon["lon"]
+        print(lat,lon)
+
+        weather_data=get_weather_data(lat,lon)
+        print(weather_data)
+
+        last7days_weather = get_last7days_weather(lat,lon)
+
+        soil_data = get_soil_ph_and_type(lat,lon)
+        print(soil_data)
+
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        DATA_PATH = os.path.join(BASE_DIR, "data", "sensor_Crop_Dataset.csv")
+
+        dataset = pd.read_csv(DATA_PATH)
+
+        npk_data = dataset[(dataset["Soil_Type"]==soil_data["soil_type"]) & (dataset["Crop"]==userinput_df.loc[0,"crop"].title())][["Nitrogen","Phosphorus","Potassium"]].mean()
+        print(type(npk_data))
+
+        df_input =pd.DataFrame(columns=FEATURES)
+        df_input.loc[0,"year"]=int(datetime.now().year)
+        df_input.loc[0,"temperature_c"]=int(last7days_weather["temperature"])
+        df_input.loc[0,"humidity_%"]=last7days_weather["humidity"]
+        df_input.loc[0,"rainfall_mm"]=last7days_weather["rainfall"]
+        df_input.loc[0,"wind_speed_m_s"]=last7days_weather["windspeed"]
+        df_input.loc[0,"solar_radiation_mj_m2_day"]=last7days_weather["solar_radiation"]
+        df_input.loc[0,"crop"]=userinput_df.loc[0,"crop"]
+        df_input.loc[0,"state_name"]=userinput_df.loc[0,"state_name"]
+        df_input.loc[0,"dist_name"]=userinput_df.loc[0,"dist_name"]
+        df_input.loc[0,"n_req_kg_per_ha"]=int(npk_data["Nitrogen"])
+        df_input.loc[0,"p_req_kg_per_ha"]=int(npk_data["Phosphorus"])   
+        df_input.loc[0,"k_req_kg_per_ha"]=int(npk_data["Potassium"])
+        df_input.loc[0,"area_ha"]=int((0.404686)*(userinput_df.loc[0,"area_in_acres"]))
+        df_input.loc[0,"ph"]=soil_data["ph"]
         
-        # Create a DataFrame with the combined data
-        df_input = pd.DataFrame([combined_data])
 
-        # Ensure columns are in the correct order as expected by the model
-        df_input = df_input.reindex(columns=FEATURES, fill_value=0)
+        # Convert numeric fields where possible
+        for col in df_input.columns:
+            df_input[col] = pd.to_numeric(df_input[col], errors="ignore")
 
-        logging.info(f"Input for prediction: {df_input.to_dict(orient='records')}")
+        # Debug: log received data
+        print("Received input:", df_input.to_dict(orient="records"))
 
+        # Make prediction
         prediction = model.predict(df_input)[0]
-        return jsonify({"prediction": round(float(prediction), 2)})
-    
+        show_features = ["temperature_c", "humidity_%", "rainfall_mm", "wind_speed_m_s",
+                 "solar_radiation_mj_m2_day", "n_req_kg_per_ha", "p_req_kg_per_ha",
+                 "k_req_kg_per_ha","ph"]
+
+        inputs_to_show = df_input[show_features].to_dict(orient="records")[0]
+
+        return jsonify({
+            "prediction": round(float(prediction), 2),
+            "prediction_unit": "kg/acre",
+            "total_prediction": round(float(prediction) * (userinput_df.loc[0, "area_in_acres"]), 2),
+            "total_prediction_unit": "kg",
+            "inputs_used": inputs_to_show   # ✅ send df_input subset
+        })
     except Exception as e:
-        logging.error(f"Error during prediction: {e}")
+        print("Error:", str(e))  # Debug log
         return jsonify({"error": str(e)}), 400
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0')
+    app.run(debug=True)

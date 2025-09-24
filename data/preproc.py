@@ -12,7 +12,7 @@ def get_preprocessors(X):
 
     tree_preprocessor = ColumnTransformer(transformers=[
         ('num', 'passthrough', numeric_features),
-        ('cat', OrdinalEncoder(), categorical_features)
+        ('cat', OrdinalEncoder(handle_unknown="error"), categorical_features)
     ])
 
     return linear_preprocessor, tree_preprocessor

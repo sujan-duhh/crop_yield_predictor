@@ -31,4 +31,20 @@ for name, model in models.items():
     # Save trained pipeline for later use
     joblib.dump(pipeline, f"{name.replace(' ', '_')}_pipeline.pkl")
 
+# Convert results dict → DataFrame
+results_df = pd.DataFrame(results).T
+
+# Find model with lowest MSE
+best_model_name = results_df['MSE'].idxmin()
+print(f"✅ Best model: {best_model_name}")
+print(results_df.loc[best_model_name])
+
+# Load the corresponding trained pipeline
+import joblib
+best_model = joblib.load(f"{best_model_name.replace(' ', '_')}_pipeline.pkl")
+
+# Now you can use it for predictions
+sample_input = X_test.iloc[:5]   # example input
+print(best_model.predict(sample_input))
 print(pd.DataFrame(results).T)
+pd.DataFrame(results).T.to_csv("results.csv")

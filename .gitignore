@@ -3,3 +3,4 @@
 __pycache__/
 *.pkl
 *.joblib
+fertilizer_enhanced_dataset.csv

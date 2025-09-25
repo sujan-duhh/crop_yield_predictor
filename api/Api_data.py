@@ -178,7 +178,7 @@ import time
 from datetime import datetime, timedelta
 
 # Your OpenWeatherMap API key
-API_KEY = "fd2ea797b279704b8b5c440ec5af438c"
+API_KEY = ""
 
 # Location (example: New Delhi, India)
 LAT = 28.6139
@@ -193,7 +193,7 @@ def get_future_rainfall(lat, lon):
     Fetch next 5 days rainfall forecast from OpenWeather 2.5 API.
     Returns daily aggregated rainfall (mm).
     """
-    url = f"http://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid=fd2ea797b279704b8b5c440ec5af438c&units=metric"
+    url = f"http://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={API_KEY}&units=metric"
     response = requests.get(url)
     data = response.json()
 

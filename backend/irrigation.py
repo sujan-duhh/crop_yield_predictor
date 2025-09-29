@@ -106,22 +106,23 @@ def predict_irrigation():
         # ✅ Assign water holding capacity
         water_capacity = soil_water_capacity.get(soil_type, "medium")
 
-        # Prepare input dataframe
+                # Prepare input dataframe
         input_data = pd.DataFrame([{
             "crop_name": data.get("crop_name"),
             "growth_stage": data.get("growth_stage", "").lower(),
-            "soil_type": soil_type,
-            "soil_ph": soil_data["ph"],
+            "soil_type": data.get("soil_type", soil_type).lower(),
+            "soil_ph": float(soil_data["ph"]),
             "water_holding_capacity": water_capacity,
-            "temperature": weather["temperature"],
-            "humidity": weather["humidity"],
-            "rainfall_last_7_days": weather["rainfall"],
-            "rainfall_forecast_next_7_days": future_rainfall,
+            "temperature": float(weather["temperature"]),
+            "humidity": float(weather["humidity"]),
+            "rainfall_last_7_days": float(weather["rainfall"]),
+            "rainfall_forecast_next_7_days": float(future_rainfall),   # ✅ force float
             "water_availability": data.get("water_availability"),
             "source_of_water": data.get("source_of_water"),
             "field_slope": data.get("field_slope"),
-            "area_acres": data.get("area_acres"),
+            "area_acres": float(data.get("area_acres", 0)),           # ✅ force float
         }])
+
 
         print("Cleaned input before encoding:\n", input_data)
 

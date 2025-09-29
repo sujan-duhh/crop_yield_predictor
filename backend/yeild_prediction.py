@@ -51,8 +51,8 @@ def features():
 def predict_yield():
     try:
         userinput = request.get_json()
-        userinput_df = pd.DataFrame([userinput], columns=["crop", "state_name", "dist_name", "area_in_acres"])
-
+        userinput_df = pd.DataFrame([userinput], columns=["crop", "state_name", "dist_name", "area_in_acres","soil_type"])
+        print(userinput_df)
         # Fetch location
         lat_lon = get_lat_lon(userinput_df.loc[0, "state_name"], userinput_df.loc[0, "dist_name"])
         lat, lon = lat_lon["lat"], lat_lon["lon"]
@@ -67,12 +67,9 @@ def predict_yield():
         data_path = os.path.join(BASE_DIR, "sensor_Crop_Dataset.csv")
         dataset = pd.read_csv(data_path)
 
-        if soil_data["soil_type"] == "Unknown" or pd.isna(soil_data["soil_type"]):
-            soil_data["soil_type"] = "Loamy"
-
-        print("🔍 Using soil type:", soil_data["soil_type"])
+        
         npk_data = dataset[
-            (dataset["Soil_Type"] == soil_data["soil_type"]) &
+            (dataset["Soil_Type"] == userinput_df.loc[0,"soil_type"].title()) &
             (dataset["Crop"] == userinput_df.loc[0, "crop"].title())
         ][["Nitrogen", "Phosphorus", "Potassium"]].mean()
         print("🔍 NPK data fetched:", npk_data)

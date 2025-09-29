@@ -11,6 +11,7 @@ function Irrigation() {
     area_acres: "",
     state: "",
     district: "",
+    soil_type: "",
   });
 
   const [recommendation, setRecommendation] = useState(null);
@@ -231,6 +232,22 @@ function Irrigation() {
         >
           <option value="">Select Field Slope</option>
           {slopeOptions.map((f) => (
+            <option key={f} value={f}>
+              {f}
+            </option>
+          ))}
+        </select>
+        
+        {/* soil_type */}
+        <select
+          name="soil_type"
+          value={formData.soil_type}
+          onChange={handleChange}
+          style={styles.input}
+          required
+        >
+          <option value="">Select soil type</option>
+          {soilTypeOptions.map((f) => (
             <option key={f} value={f}>
               {f}
             </option>

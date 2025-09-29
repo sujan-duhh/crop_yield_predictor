@@ -178,7 +178,7 @@ import time
 from datetime import datetime, timedelta
 
 # Your OpenWeatherMap API key
-API_KEY = ""
+API_KEY = "fd2ea797b279704b8b5c440ec5af438c"
 
 # Location (example: New Delhi, India)
 LAT = 28.6139

@@ -10,6 +10,7 @@ export default function Fertilizer() {
     crop: "",
     state: "",
     district: "",
+    soil_type: "",
   });
   const [recommendation, setRecommendation] = useState(null);
   const [isLoading, setIsLoading] = useState(false);

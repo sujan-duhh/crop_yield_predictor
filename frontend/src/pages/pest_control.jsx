@@ -9,6 +9,7 @@ export default function Pest() {
     Growth_Stage: "",
     State: "",
     District: "",
+    soil_type: "",
   });
 
   const [result, setResult] = useState(null);
@@ -48,7 +49,7 @@ export default function Pest() {
     Potato: ["Red", "Russet", "Yukon Gold"],
     Rice: ["Arborio", "Basmati", "Jasmine"],
   };
-
+  const soilTypeOptions = ["loamy", "peaty", "clay", "silt", "saline", "sandy"];
   const growthStageOptions = [
     "Flowering",
     "Fruiting/Grain_fill",
@@ -211,6 +212,23 @@ export default function Pest() {
               </option>
             ))}
           </select>
+
+            {/* Soil_type */}
+          <select
+            name="soil_type"
+            value={formData.soil_type}
+            onChange={handleChange}
+            style={styles.input}
+            required
+          >
+            <option value="">Select Soil type</option>
+            {soilTypeOptions.map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
+          </select>
+
 
           {/* State + District (keep as free text for now) */}
           <input

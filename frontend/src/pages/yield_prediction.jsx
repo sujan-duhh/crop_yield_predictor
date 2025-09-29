@@ -7,6 +7,7 @@ function YieldPrediction() {
     state_name: "",
     dist_name: "",
     area_in_acres: "",
+    soil_type: "",
   });
   const [prediction, setPrediction] = useState(null);
 
@@ -182,7 +183,20 @@ function YieldPrediction() {
             <option value="chickpea">Chickpea</option>
             <option value="cotton">Cotton</option>
           </select>
-
+          {/* soil_type dropdown */}
+          <select
+            name="soil_type"
+            value={formData.soil_type}
+            onChange={handleChange}
+            required
+            className="form-input"
+          >
+            <option value="">Select Soil type</option>
+            <option value="loamy">Loamy</option>
+            <option value="sandy">Sandy</option>
+            <option value="clay">Clay</option>
+            <option value="silt">Silt</option>
+          </select>
           {/* Other inputs */}
           <input
             type="text"
